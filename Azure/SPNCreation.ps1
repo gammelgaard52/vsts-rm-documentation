@@ -1,24 +1,21 @@
 param
 (
-    [Parameter(Mandatory=$true, HelpMessage="Enter Azure Subscription name. You need to be Subscription Admin to execute the script")]
-    [string] $subscriptionName,
+    [Parameter(Mandatory=$true, HelpMessage="Enter Azure Subscription ID. You need to be Subscription Admin to execute the script")]
+    [string] $subscriptionID,
 
     [Parameter(Mandatory=$true, HelpMessage="Provide a password for SPN application that you would create")]
     [string] $password,
 
     [Parameter(Mandatory=$false, HelpMessage="Provide a SPN role assignment")]
-    [string] $spnRole = "owner",
-    
-    [Parameter(Mandatory=$false, HelpMessage="Provide Azure environment name for your subscription")]
-    [string] $environmentName = "AzureCloud"
+    [string] $spnRole = "Contributor",
+
+    [Parameter(Mandatory=$false, HelpMessage="Provide a name for SPN - default will be D365VSTSConnection")]
+    [string] $displayName = "D365VSTSConnection"
 )
 
 #Initialize
 $ErrorActionPreference = "Stop"
 $VerbosePreference = "SilentlyContinue"
-$userName = $env:USERNAME
-$newguid = [guid]::NewGuid()
-$displayName = [String]::Format("VSO.{0}.{1}", $userName, $newguid)
 $homePage = "http://" + $displayName
 $identifierUri = $homePage
 
@@ -32,9 +29,9 @@ if ([String]::IsNullOrEmpty($isAzureModulePresent) -eq $true)
 }
 
 Import-Module -Name AzureRM.Profile
-Write-Output "Provide your credentials to access Azure subscription $subscriptionName" -Verbose
-Login-AzureRmAccount -SubscriptionName $subscriptionName -EnvironmentName $environmentName
-$azureSubscription = Get-AzureRmSubscription -SubscriptionName $subscriptionName
+Write-Output "Provide your credentials to access Azure subscription $subscriptionID" -Verbose
+Login-AzureRmAccount -SubscriptionID $subscriptionID
+$azureSubscription = Get-AzureRmSubscription -SubscriptionID $subscriptionID
 $connectionName = $azureSubscription.SubscriptionName
 $tenantId = $azureSubscription.TenantId
 $id = $azureSubscription.SubscriptionId
@@ -55,8 +52,8 @@ Write-Output "SPN creation completed successfully (SPN Name: $spnName)" -Verbose
 
 
 #Assign role to SPN
-Write-Output "Waiting for SPN creation to reflect in Directory before Role assignment"
-Start-Sleep 20
+Write-Output "Waiting 40 seconds for SPN creation to reflect in Directory before Role assignment"
+Start-Sleep 40
 Write-Output "Assigning role ($spnRole) to SPN App ($appId)" -Verbose
 New-AzureRmRoleAssignment -RoleDefinitionName $spnRole -ServicePrincipalName $appId
 Write-Output "SPN role assignment completed successfully" -Verbose
